@@ -1,5 +1,6 @@
 import React from 'react'
 import axios from 'axios'
+import { Container, Button, Header, Divider, Segment } from 'semantic-ui-react';
 
 export default class Dashboard extends React.Component {
     constructor(props) {
@@ -25,16 +26,22 @@ export default class Dashboard extends React.Component {
             <div>
                 {
                     this.state.user.auth_id ?
-                        <div>
-                            <div>Welcome, {this.state.user.first_name}</div>
-                            <img src={this.state.user.img_url} alt={`url: ${this.state.user.img_url}`} height="100" width="100" />
-                            <button onClick={this.logout}>logout</button>
-                        </div>
+                        <Segment className="profile_box" compact={false}>
+                            <Header>Welcome, {this.state.user.first_name[0].toUpperCase() + this.state.user.first_name.slice(1)}</Header>
+                            <Divider />
+                            <div>
+                                <img src={this.state.user.img_url} alt={`url: ${this.state.user.img_url}`} height="100" width="100" style={{ borderRadius: "50%" }} />
+                            </div>
+                            <p>
+                                Commodo incididunt cupidatat fugiat eu ad ad do irure cillum reprehenderit adipisicing.
+                            </p>
+                            <Button primary onClick={this.logout} >Logout</Button>
+                        </Segment>
                         :
-                        <div>
+                        <Container>
                             <div>unauthorized</div>
-                            <button onClick={this.logout}>back</button>
-                        </div>
+                            <Button bsStyle="primary" onClick={this.logout}>back</Button>
+                        </Container>
                 }
             </div>
         )

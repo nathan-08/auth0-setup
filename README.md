@@ -11,7 +11,8 @@ express
 express-session
 passport 
 passport-Auth0
-
+dotenv
+body-parser
 
 front-end
 ----------
