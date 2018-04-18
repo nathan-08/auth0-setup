@@ -39,8 +39,7 @@ export default class Dashboard extends React.Component {
                         </Segment>
                         :
                         <Container>
-                            <div>unauthorized</div>
-                            <Button bsStyle="primary" onClick={this.logout}>back</Button>
+                            <div>Unauthorized</div>
                         </Container>
                 }
             </div>
