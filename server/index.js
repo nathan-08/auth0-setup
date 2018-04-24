@@ -1,80 +1,75 @@
-const express = require('express')
-const bodyParser = require('body-parser')
 require('dotenv').config()
+const bodyParser = require('body-parser')
+const massive = require('massive')
+const express = require('express')
 const session = require('express-session')
 const passport = require('passport')
-const Auth0Strategy = require('passport-auth0')
-const port = process.env.SERVER_PORT || 4001;
+const auth0strategy = require('passport-auth0')
+const port = process.env.SERVER_PORT || 4001
 const ctrl = require('./controller')
-const users = require('./users')
-const massive = require('massive');
 
 const app = express();
-// middleware
+
 app.use(bodyParser.json());
-massive('postgres://ntmhfkzbkuovpc:9452b1dd472f8144fda8e5fa073324fedb1dfde224f81f8b12cdaaf0ea3e3c52@ec2-50-17-235-5.compute-1.amazonaws.com:5432/dbdi2s6lksp5og?ssl=true').then(db => {
+massive(process.env.CONNECTION_STRING).then(db => {
     console.log('--database connected--')
     app.set('db', db)
+    app.listen(port, () => console.log(`0,0 listending on port ${port}`))
 })
 app.use(session({
-    secret: 'asdfASDFasdfASDF',
-    resave: true,
-    saveUninitialized: false
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true
 }))
 app.use(passport.initialize())
 app.use(passport.session())
-// auth0 strategy
-const strategy = new Auth0Strategy({
+const strategy = new auth0strategy({
     domain: process.env.DOMAIN,
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
     callbackURL: '/login',
-},
-    function (accessToken, refreshToken, extraParams, profile, done) {
-        console.log('profile', profile)
-        // get name and other relevant data
-        const user = {
-            auth_id: profile.id,
-            first_name: profile._json.given_name,
-            last_name: profile._json.family_name,
-            img_url: profile.picture
-        }
-        return done(null, user)
-    }
-)
-passport.use(strategy)
-passport.serializeUser(function (user, done) {
-    console.log('serializing user to session: user: ', user)
-    done(null, user)
-})
-passport.deserializeUser(async function (user, done) {
-    console.log('deserializing user: ', user)
+    scope: 'openid email profile'
+}, async function (accessToken, refreshToken, extraParams, profile, done) {
     const dbInstance = app.get('db')
-    let users = await dbInstance.get_users().then(users => {
-        return users
-    })
-    // find user by id
-    const match = users.find((el) => el.auth_id === user.auth_id)
-    if (match) return done(null, match)
-    // no user found; create user
-    console.log('no match found, creating user')
-    const { auth_id, first_name, last_name, img_url } = user;
-    let newUser = await dbInstance.create_user([auth_id, first_name, last_name, img_url]).then(user => user[0])
-    console.log('created new user: ', newUser)
-    return done(null, newUser)
+    const users = await dbInstance.get_users()
+    const match = users.find((el) => el.auth_id === profile.id)
+    if (match) {
+        done(null, profile.id)
+    } else {
+        dbInstance.create_user([
+            profile.id,
+            profile._json.given_name,
+            profile._json.family_name,
+            profile.picture
+        ]).then(_ => done(null, profile.id))
+    }
 })
-// ENDPOINTS
-// auth endpoint
-app.get('/login', passport.authenticate('auth0', {
-    successRedirect: "http://localhost:3000/#/dashboard",
-    failureRedirect: "/"
-}))
-// check for logged in user
-app.get('/check', ctrl.checkLoggedIn)
-//logout
-app.get('/logout', function (req, res) {
-    console.log('loggin out')
-    req.session.destroy(function () { res.send(200) })
+passport.use(strategy)
+passport.serializeUser(function (user_id, done) {
+    console.log('serializing')
+    done(null, user_id)
+})
+passport.deserializeUser(async function (user_id, done) {
+    // check for existing user in DB
+    // puts user info on req.user
+    console.log('deserializing')
+    const dbInstance = app.get('db')
+    dbInstance.get_user_by_auth_id([user_id]).then(match => {
+        console.log('returning this; ', match[0])
+        done(null, match[0])
+    })
 })
 
-app.listen(port, _ => console.log(`0,0 listening on port ${port}`))
+// auth endpoint
+app.get('/login', passport.authenticate('auth0', {
+    successRedirect: 'http://localhost:3000/#/dashboard',
+    failureRedirect: 'http://localhost:3000/#/'
+}))
+// check endpoint
+app.get('/check', ctrl.checkLoggedIn)
+// logout endpoint
+app.get('/logout', (req, res) => {
+    req.session.destroy(function () {
+        res.sendStatus(200)
+    })
+})
