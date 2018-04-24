@@ -1,0 +1,6 @@
+SERVER_PORT=4001
+DOMAIN= # get this from auth0
+CLIENT_ID= # get this from auth0
+CLIENT_SECRET= # get this from auth0
+SESSION_SECRET=asdfa;sldkfjas;ldkfjasdl;fkjas;dlfkjas;dlfkj
+CONNECTION_STRING= # get this from heroku

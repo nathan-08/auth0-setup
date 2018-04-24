@@ -69,7 +69,6 @@ app.get('/login', passport.authenticate('auth0', {
 app.get('/check', ctrl.checkLoggedIn)
 // logout endpoint
 app.get('/logout', (req, res) => {
-    req.session.destroy(function () {
-        res.sendStatus(200)
-    })
+    req.logOut()
+    return res.redirect('http://localhost:3000/#/')
 })
