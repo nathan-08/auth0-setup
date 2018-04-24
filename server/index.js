@@ -7,10 +7,15 @@ const Auth0Strategy = require('passport-auth0')
 const port = process.env.SERVER_PORT || 4000;
 const ctrl = require('./controller')
 const users = require('./users')
+const massive = require('massive');
 
 const app = express();
 // middleware
 app.use(bodyParser.json());
+massive('postgres://ntmhfkzbkuovpc:9452b1dd472f8144fda8e5fa073324fedb1dfde224f81f8b12cdaaf0ea3e3c52@ec2-50-17-235-5.compute-1.amazonaws.com:5432/dbdi2s6lksp5og?ssl=true').then(db => {
+    console.log('--database connected--')
+    app.set('db', db)
+})
 app.use(session({
     secret: 'asdfASDFasdfASDF',
     resave: true,
