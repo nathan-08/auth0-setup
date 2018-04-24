@@ -4,7 +4,7 @@ require('dotenv').config()
 const session = require('express-session')
 const passport = require('passport')
 const Auth0Strategy = require('passport-auth0')
-const port = process.env.SERVER_PORT || 4000;
+const port = process.env.SERVER_PORT || 4001;
 const ctrl = require('./controller')
 const users = require('./users')
 const massive = require('massive');
@@ -47,15 +47,21 @@ passport.serializeUser(function (user, done) {
     console.log('serializing user to session: user: ', user)
     done(null, user)
 })
-passport.deserializeUser(function (user, done) {
+passport.deserializeUser(async function (user, done) {
     console.log('deserializing user: ', user)
+    const dbInstance = app.get('db')
+    let users = await dbInstance.get_users().then(users => {
+        return users
+    })
     // find user by id
-    const match = users.find((e) => e.auth_id === user.auth_id)
+    const match = users.find((el) => el.auth_id === user.auth_id)
     if (match) return done(null, match)
     // no user found; create user
     console.log('no match found, creating user')
-    users.push(user)
-    return done(null, user)
+    const { auth_id, first_name, last_name, img_url } = user;
+    let newUser = await dbInstance.create_user([auth_id, first_name, last_name, img_url]).then(user => user[0])
+    console.log('created new user: ', newUser)
+    return done(null, newUser)
 })
 // ENDPOINTS
 // auth endpoint
